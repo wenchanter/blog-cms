@@ -32,7 +32,10 @@ const t = (text, marks) => (marks ? { type: "text", text, marks } : { type: "tex
     ]},
     { type: "codeBlock", attrs: { language: "go" }, content: [t('fmt.Println("hi")')] },
   ));
-  eq("首段成为 lead", blocks[0], { type: "lead", text: "引子" });
+  eq("首段是普通段落，不再自动变 lead", blocks[0], {
+    type: "paragraph",
+    text: "引子",
+  });
   eq("标题", blocks[1], { type: "heading", id: "heading-2", text: "小节", level: 2 });
   eq("段落", blocks[2], { type: "paragraph", text: "正文" });
   eq("无序列表", blocks[3], { type: "list", items: ["甲", "乙"], ordered: false });
@@ -136,13 +139,23 @@ export function handle(req: Request): Response {
 {
   const original = compileMarkdown(CORPUS).blocks;
   const roundTripped = compileDoc(blocksToDoc(original)).blocks;
-  eq("Markdown 块 → doc → 块 完全一致", roundTripped, original);
+
+  // The Markdown compiler is frozen at its migration-era behaviour, which still
+  // promotes the opening paragraph to a `lead`. The editor no longer does, so
+  // that one block is expected to come back as a paragraph. Normalising it here
+  // keeps the rest of the corpus under a strict byte-for-byte assertion instead
+  // of loosening the whole comparison.
+  const expected = original.map((block) =>
+    block.type === "lead" ? { type: "paragraph", text: block.text } : block,
+  );
+
+  eq("Markdown 块 → doc → 块（首段降级为普通段落外完全一致）", roundTripped, expected);
 }
 
 {
   // Every block type, including the ones the corpus does not cover.
   const all = [
-    { type:"lead", text:"引子" },
+    { type:"paragraph", text:"引子" },
     { type:"heading", id:"a", text:[{type:"text",text:"标",marks:["strong"]}], level:2 },
     { type:"paragraph", text:[{type:"text",text:"链",href:"https://a.com"},{type:"text",text:"删",marks:["strike"]}] },
     { type:"list", items:["甲","乙"], ordered:true },
@@ -162,6 +175,18 @@ export function handle(req: Request): Response {
   eq("无署名引用 round-trip", back[6], all[6]);
   eq("代码 round-trip", back[7], all[7]);
   eq("图片 round-trip", back[8], all[8]);
+}
+
+{
+  // `lead` is legacy: the Markdown migration produced it and both renderers
+  // still display it, but the editor no longer emits one. Re-opening such a
+  // post in the editor and saving therefore downgrades it to a paragraph,
+  // which is the intended one-way transition rather than a round-trip bug.
+  const legacy = [{ type: "lead", text: "旧的导语" }];
+  const back = compileDoc(blocksToDoc(legacy)).blocks;
+  eq("历史 lead 重新编译为普通段落", back, [
+    { type: "paragraph", text: "旧的导语" },
+  ]);
 }
 
 console.log(`\n${passed}/${passed + failed} passed`);

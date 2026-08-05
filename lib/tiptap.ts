@@ -205,13 +205,21 @@ class Compiler {
         const text = this.inline(node.content);
         // An empty paragraph is just spacing in the editor, not content.
         if (text === "") return;
-        // The first paragraph becomes the lead-in, matching the article layout
-        // on the site. Nothing for the author to remember.
-        blocks.push(
-          blocks.length === 0
-            ? { type: "lead", text }
-            : { type: "paragraph", text },
-        );
+        /*
+         * Every paragraph compiles to a paragraph, including the first.
+         *
+         * The first one used to become a `lead`, which the article page renders
+         * larger and darker. It was meant to be free — the author writes, the
+         * layout happens — but it is only free when the opening happens to be a
+         * sentence or two. A four-line opener rendered at lead size reads as a
+         * formatting glitch, so in practice the author had to remember to keep
+         * the first paragraph short. That is the interruption this editor
+         * exists to avoid, so the rule is gone.
+         *
+         * `lead` stays in the block model and both renderers still support it;
+         * older posts that carry one are unaffected.
+         */
+        blocks.push({ type: "paragraph", text });
         return;
       }
 
