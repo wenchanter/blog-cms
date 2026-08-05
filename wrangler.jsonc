@@ -24,7 +24,8 @@
     {
       "binding": "DB",
       "database_name": "blog-cms-db",
-      "migrations_dir": "migrations"
+      "migrations_dir": "migrations",
+      "database_id": "33e09fb2-18b5-4cb5-8e65-44698e636386"
     }
   ],
   "r2_buckets": [

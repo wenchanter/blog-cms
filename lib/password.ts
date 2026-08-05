@@ -6,13 +6,22 @@
  * The iteration count lives inside the record, so it can be raised later and
  * old hashes stay verifiable (see `needsRehash`).
  *
- * Note: PBKDF2 at this cost takes ~100-200ms of CPU. That exceeds the free
- * Workers plan's per-request CPU budget, so sign-in needs a paid plan (or a
- * lower ITERATIONS, at the cost of resistance to offline cracking).
+ * Note: Workers' Web Crypto refuses PBKDF2 above 100,000 iterations
+ * ("NotSupportedError: iteration counts above 100000 are not supported"), so
+ * that ceiling is not a tuning choice. It is below the 600,000 OWASP suggests
+ * for PBKDF2-SHA256, which is why sign-in is also rate limited and sessions use
+ * 32 bytes of entropy rather than leaning on the hash alone.
+ *
+ * The local dev runtime does not enforce this cap, so a higher value appears to
+ * work until it 500s in production — hence MAX_ITERATIONS below.
  */
 
 const ALGORITHM = "pbkdf2-sha256";
-const ITERATIONS = 210_000;
+
+/** Hard platform limit on Cloudflare Workers, not a tunable. */
+const MAX_ITERATIONS = 100_000;
+
+const ITERATIONS = MAX_ITERATIONS;
 const SALT_BYTES = 16;
 const KEY_BITS = 256;
 
@@ -86,7 +95,14 @@ export async function verifyPassword(
   if (parts.length !== 4 || parts[0] !== ALGORITHM) return false;
 
   const iterations = Number.parseInt(parts[1], 10);
-  if (!Number.isInteger(iterations) || iterations < 1 || iterations > 1_000_000) {
+  // A record above the platform cap cannot be verified here at all — treat it
+  // as a failed sign-in rather than letting `derive` throw and 500 the action.
+  // Such a hash has to be replaced (re-run `user:create`).
+  if (
+    !Number.isInteger(iterations) ||
+    iterations < 1 ||
+    iterations > MAX_ITERATIONS
+  ) {
     return false;
   }
 

@@ -67,19 +67,23 @@ npm run user:create -- --email you@example.com --name "你的名字" --role admi
 | `lib/rate-limit.ts` | 登录失败次数的固定窗口限流 |
 | `lib/dal.ts` | `getCurrentUser` / `requireUser` / `requireRole` |
 | `app/actions/auth.ts` | `login` / `logout` Server Actions |
-| `proxy.ts` | 乐观跳转（仅看 cookie 是否存在）+ 安全响应头 |
+| `next.config.ts` | 安全响应头（`headers()`） |
 
 安全设计要点：
 
-- **密码**：PBKDF2-SHA256，210,000 轮 + 每用户随机 salt，比较使用常量时间。迭代次数写在哈希记录里，日后调高时旧密码会在下次登录自动升级。
+- **密码**：PBKDF2-SHA256，**100,000 轮**（Workers 的硬上限，见下方注意）+ 每用户随机 salt，比较使用常量时间。迭代次数写在哈希记录里，日后上限放宽时旧密码会在下次登录自动升级。
 - **会话**：cookie 里是 32 字节随机 token，数据库只存它的 SHA-256，因此库被读取也拿不到可重放的凭证。cookie 为 `HttpOnly` + `SameSite=Lax` + 生产环境 `Secure`，固定 7 天绝对有效期；登出会在服务端删除会话记录。
 - **不泄露账号是否存在**：邮箱不存在时仍对一个 dummy 哈希跑完整 PBKDF2，且所有失败共用同一条提示。
 - **限流**：同一 IP+邮箱 15 分钟内 5 次失败即锁定，同一 IP 20 次；锁定期间正确密码同样被拒。
-- **鉴权位置**：`proxy.ts` 只做乐观预筛（不查库，因为它对预取请求也会运行），真正的判定在 DAL 中贴近数据源完成。
+- **鉴权位置**：判定全部在 DAL 中贴近数据源完成 —— `app/admin/layout.tsx` 调 `requireUser()`，每个 page 与 Server Action 也各自再查一次。**没有 Proxy/Middleware**：Next.js 16 的 Proxy 只跑在 Node 运行时且不允许改 `runtime`，而 `@opennextjs/cloudflare` 只支持 edge middleware，两者无法共存。原先那层跳转本来就只是乐观预筛（不查库），删掉不影响防护强度，只是未登录访问 `/admin/*` 会多渲染一步再跳转，且 `?next=` 统一回落到 `/admin` 而非深层路径。
 - **开放重定向**：`?next=` 只接受站内相对路径。
 - **CSRF**：Server Actions 自带 Origin 校验，配合 `SameSite=Lax` 的会话 cookie。
 
-> 注意：一次 PBKDF2 约需 100–200ms CPU，超出 Workers 免费套餐每请求的 CPU 配额，登录需要付费套餐（或在 `lib/password.ts` 中调低 `ITERATIONS`，代价是抗离线破解能力下降）。
+> **注意：Workers 的 Web Crypto 拒绝超过 100,000 轮的 PBKDF2**（`NotSupportedError: iteration counts above 100000 are not supported`），所以 `ITERATIONS` 不是可调参数，是平台上限。
+>
+> 麻烦之处在于**本地运行时不强制这个限制** —— 设成 210,000 时本地登录一切正常，部署到线上才 500。因此 `verifyPassword` 里加了 `MAX_ITERATIONS` 校验：超过上限的历史哈希直接判定为登录失败，而不是让 `derive` 抛异常把 Server Action 打成 500。**遇到这种哈希必须重新执行 `user:create` 覆盖。**
+>
+> 100,000 轮低于 OWASP 对 PBKDF2-SHA256 建议的 600,000。这是平台天花板，无法在 Workers 上突破（Argon2/scrypt 也不可用），因此登录另有固定窗口限流，会话 token 用 32 字节随机数而不依赖哈希强度。
 
 ## 文章 CMS
 
@@ -264,6 +268,8 @@ echo 'CMS_API_TOKEN="..."' > .dev.vars      # 本地（已 gitignore）
 | `NEXT_PUBLIC_CMS_ORIGIN` | personal-website | CMS 的地址，可逗号分隔多个 |
 
 两者都是 `NEXT_PUBLIC_`，**在构建期内联**，改完要重新构建。留空则预览自动降级为内置近似渲染。
+
+> 本地值请放 `.env.development.local`，**不要放 `.env.local`** —— 后者优先级高于 `.env.production`，会让本机执行的生产构建把 `localhost` 打进线上产物。生产值放 `.env.production.local` 或部署平台的环境变量。
 
 personal-website 侧另需设置 `CMS_API_URL` 与同一个 `CMS_API_TOKEN`，之后 `npm run build` 会自动同步并生成静态页。
 
