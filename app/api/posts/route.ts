@@ -1,7 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { blocksToPlainText } from "@/lib/blocks";
+import { absolutizeBlocks, blocksToPlainText } from "@/lib/blocks";
 import { getDatabase } from "@/lib/cloudflare";
-import type { ArticleBlock } from "@/lib/blocks";
 import { compileDocJson } from "@/lib/tiptap";
 import { listPosts } from "@/lib/posts";
 
@@ -26,25 +25,6 @@ function timingSafeEqual(a: string, b: string): boolean {
   let diff = 0;
   for (let i = 0; i < left.length; i++) diff |= left[i] ^ right[i];
   return diff === 0;
-}
-
-/**
- * Uploaded images are stored with a root-relative path so the CMS preview and
- * the editor work same-origin. The static site is served from a different
- * domain, so the feed must hand out absolute URLs or every image would 404.
- *
- * `PUBLIC_ASSET_BASE_URL` overrides the request origin for the case where the
- * bucket is fronted by a CDN or custom domain.
- */
-function absolutize(
-  blocks: ArticleBlock[],
-  origin: string,
-): ArticleBlock[] {
-  return blocks.map((block) =>
-    block.type === "image" && block.src.startsWith("/")
-      ? { ...block, src: `${origin}${block.src}` }
-      : block,
-  );
 }
 
 async function readEnv(name: string): Promise<string | undefined> {
@@ -84,6 +64,8 @@ export async function GET(request: Request): Promise<Response> {
 
   const url = new URL(request.url);
   const page = Math.max(Number(url.searchParams.get("page") ?? 1) || 1, 1);
+  // `PUBLIC_ASSET_BASE_URL` overrides the request origin for the case where the
+  // bucket is fronted by a CDN or custom domain.
   const assetOrigin = (
     (await readEnv("PUBLIC_ASSET_BASE_URL")) ?? url.origin
   ).replace(/\/$/, "");
@@ -132,7 +114,7 @@ export async function GET(request: Request): Promise<Response> {
       updatedAt: post.updatedAt,
       readingTime: `${Math.max(1, Math.ceil(words.length / 220))} min read`,
       seo: post.seo ? safeJson(post.seo) : null,
-      content: absolutize(blocks, assetOrigin),
+      content: absolutizeBlocks(blocks, assetOrigin),
       ...(contentError ? { contentError } : {}),
     };
   });

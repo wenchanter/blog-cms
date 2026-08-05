@@ -1,17 +1,39 @@
-"use client";
-
 import type { ArticleBlock, InlineNode, RichText } from "@/lib/blocks";
 import type { Diagnostic } from "@/lib/tiptap";
 
 /**
- * Renders compiled blocks the way personal-website's ArticleBody does, so the
- * author sees the real published layout rather than a generic Markdown render.
- * The markup mirrors that component; when the site's article styling changes,
- * update this alongside it.
+ * The offline fallback renderer.
+ *
+ * The normal preview is an iframe onto personal-website's `/preview/`,
+ * which uses the site's own `ArticleBody` — there is nothing to drift there.
+ * This copy exists only for when that site is unreachable (no network, site not
+ * running locally), and it must still be trustworthy, so it is a byte-for-byte
+ * copy of `app/components/blog/ArticleBody.tsx`.
+ *
+ * `scripts/test-renderer-parity.tsx` proves that claim against a golden file
+ * generated from the real component (`npm run golden` in personal-website).
+ * Do not "improve" the markup here: the test will fail, and rightly so.
  */
 
+function CodeGlyph() {
+  return (
+    <svg className="size-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="m7.5 6.5-3.5 3.5 3.5 3.5m5-7 3.5 3.5-3.5 3.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.4"
+      />
+    </svg>
+  );
+}
+
 function Inline({ value }: { value: RichText }) {
-  if (typeof value === "string") return <>{value}</>;
+  if (typeof value === "string") {
+    return <>{value}</>;
+  }
+
   return (
     <>
       {value.map((node, index) => (
@@ -32,21 +54,36 @@ function InlineRun({ node }: { node: InlineNode }) {
       </code>
     );
   }
-  if (marks.includes("em")) content = <em>{content}</em>;
-  if (marks.includes("strike")) content = <s>{content}</s>;
+
+  if (marks.includes("em")) {
+    content = <em>{content}</em>;
+  }
+
+  if (marks.includes("strike")) {
+    content = <s>{content}</s>;
+  }
+
   if (marks.includes("underline")) {
     content = <u className="underline underline-offset-2">{content}</u>;
   }
+
   if (marks.includes("strong")) {
-    content = <strong className="font-semibold text-zinc-900 dark:text-zinc-100">{content}</strong>;
+    content = (
+      <strong className="font-semibold text-zinc-900 dark:text-zinc-100">
+        {content}
+      </strong>
+    );
   }
+
   if (node.href) {
+    const external = /^https?:\/\//.test(node.href);
     content = (
       <a
+        className="text-brand underline underline-offset-2 hover:no-underline"
         href={node.href}
-        className="text-accent-text underline underline-offset-2"
-        target="_blank"
-        rel="noreferrer"
+        {...(external
+          ? { target: "_blank", rel: "noreferrer noopener" }
+          : {})}
       >
         {content}
       </a>
@@ -60,25 +97,36 @@ function Block({ block }: { block: ArticleBlock }) {
   switch (block.type) {
     case "lead":
       return (
-        <p className="text-lg leading-9 text-pretty text-zinc-700 dark:text-zinc-300">
+        <p className="text-lg leading-9 text-pretty text-zinc-700 sm:text-xl sm:leading-10 dark:text-zinc-300">
           <Inline value={block.text} />
         </p>
       );
 
-    case "heading":
-      return block.level === 3 ? (
-        <h3 className="mt-10 text-xl leading-tight font-bold tracking-[-0.03em] text-zinc-950 dark:text-zinc-50">
-          <Inline value={block.text} />
-        </h3>
-      ) : (
-        <h2 className="mt-12 text-2xl leading-tight font-extrabold tracking-[-0.04em] text-zinc-950 first:mt-0 dark:text-zinc-50">
+    case "heading": {
+      if (block.level === 3) {
+        return (
+          <h3
+            className="mt-12 scroll-mt-28 text-xl leading-tight font-bold tracking-[-0.03em] text-zinc-950 sm:text-2xl dark:text-zinc-50"
+            id={block.id}
+          >
+            <Inline value={block.text} />
+          </h3>
+        );
+      }
+
+      return (
+        <h2
+          className="mt-16 scroll-mt-28 text-2xl leading-tight font-extrabold tracking-[-0.04em] text-zinc-950 first:mt-0 sm:text-3xl dark:text-zinc-50"
+          id={block.id}
+        >
           <Inline value={block.text} />
         </h2>
       );
+    }
 
     case "paragraph":
       return (
-        <p className="mt-5 text-base leading-9 text-pretty text-zinc-600 dark:text-zinc-400">
+        <p className="mt-6 text-base leading-9 text-pretty text-zinc-600 sm:text-[1.0625rem] sm:leading-9 dark:text-zinc-400">
           <Inline value={block.text} />
         </p>
       );
@@ -87,13 +135,13 @@ function Block({ block }: { block: ArticleBlock }) {
       const items = block.items.map((item, index) => (
         <li className="flex gap-3" key={index}>
           {block.ordered ? (
-            <span className="mt-0.5 shrink-0 font-mono text-sm font-semibold text-accent">
+            <span className="mt-0.5 shrink-0 font-mono text-sm font-semibold text-brand">
               {String(index + 1).padStart(2, "0")}
             </span>
           ) : (
             <span
-              className="mt-3 size-1.5 shrink-0 rounded-full bg-accent"
-              aria-hidden
+              className="mt-3 size-1.5 shrink-0 rounded-full bg-brand"
+              aria-hidden="true"
             />
           )}
           <span>
@@ -103,11 +151,11 @@ function Block({ block }: { block: ArticleBlock }) {
       ));
 
       return block.ordered ? (
-        <ol className="mt-5 space-y-3 text-base leading-8 text-zinc-600 dark:text-zinc-400">
+        <ol className="mt-6 space-y-4 text-base leading-8 text-zinc-600 sm:text-[1.0625rem] dark:text-zinc-400">
           {items}
         </ol>
       ) : (
-        <ul className="mt-5 space-y-3 text-base leading-8 text-zinc-600 dark:text-zinc-400">
+        <ul className="mt-6 space-y-4 text-base leading-8 text-zinc-600 sm:text-[1.0625rem] dark:text-zinc-400">
           {items}
         </ul>
       );
@@ -115,23 +163,23 @@ function Block({ block }: { block: ArticleBlock }) {
 
     case "quote":
       return (
-        <figure className="mt-8 border-l-[3px] border-accent py-1 pl-6">
-          <blockquote className="text-lg leading-9 text-pretty text-zinc-600 italic dark:text-zinc-300">
+        <figure className="mt-10 border-l-[3px] border-brand py-1 pl-6">
+          <blockquote className="text-lg leading-9 text-pretty text-zinc-600 italic sm:text-xl sm:leading-10 dark:text-zinc-300">
             <Inline value={block.text} />
           </blockquote>
-          {block.cite && (
+          {block.cite ? (
             <figcaption className="mt-3 font-mono text-xs text-zinc-400 not-italic dark:text-zinc-500">
               {block.cite}
             </figcaption>
-          )}
+          ) : null}
         </figure>
       );
 
     case "code":
       return (
-        <div className="mt-8 overflow-hidden rounded-xl border border-zinc-950/10 bg-white/70 dark:border-white/10 dark:bg-zinc-900/70">
-          <div className="flex items-center gap-3 border-b border-zinc-950/8 px-4 py-2.5 dark:border-white/10">
-            <span className="flex gap-1.5" aria-hidden>
+        <div className="mt-10 overflow-hidden rounded-xl border border-zinc-950/10 bg-white/70 shadow-[0_10px_30px_rgba(24,24,27,0.05)] backdrop-blur-[2px] dark:border-white/10 dark:bg-zinc-900/70">
+          <div className="flex items-center gap-3 border-b border-zinc-950/8 px-4 py-3 dark:border-white/10">
+            <span className="flex gap-1.5" aria-hidden="true">
               <span className="size-3 rounded-full bg-[#ff5f57]" />
               <span className="size-3 rounded-full bg-[#febc2e]" />
               <span className="size-3 rounded-full bg-[#28c840]" />
@@ -139,16 +187,28 @@ function Block({ block }: { block: ArticleBlock }) {
             <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
               {block.language}
             </span>
+            <span
+              className="ml-auto text-zinc-300 dark:text-zinc-600"
+              aria-hidden="true"
+            >
+              <CodeGlyph />
+            </span>
           </div>
-          <pre className="overflow-x-auto px-5 py-4 text-[0.8125rem] leading-7 text-zinc-700 dark:text-zinc-300">
+          <pre className="overflow-x-auto px-5 py-5 text-[0.8125rem] leading-7 text-zinc-700 dark:text-zinc-300">
             <code className="font-mono">{block.code}</code>
           </pre>
         </div>
       );
 
     case "image":
+      /*
+       * A plain <img> rather than next/image: the site is a static export, the
+       * CMS serves these bytes with an immutable cache header, and the
+       * intrinsic size travels with the block so the browser can reserve space
+       * before the image loads.
+       */
       return (
-        <figure className="mt-8">
+        <figure className="mt-10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={block.src}
@@ -170,6 +230,24 @@ function Block({ block }: { block: ArticleBlock }) {
     default:
       return null;
   }
+}
+
+/**
+ * Mirrors personal-website's default export. Kept separate from the surrounding
+ * chrome below so the parity test compares exactly what the site renders.
+ */
+export function PreviewBody({
+  content,
+}: {
+  content: readonly ArticleBlock[];
+}) {
+  return (
+    <div>
+      {content.map((block, index) => (
+        <Block block={block} key={index} />
+      ))}
+    </div>
+  );
 }
 
 export function DiagnosticsList({
@@ -207,6 +285,13 @@ export function DiagnosticsList({
   );
 }
 
+/**
+ * The fallback panel: the real body renderer wrapped in a rough stand-in for
+ * the article page's header. The header is *not* covered by the parity test —
+ * reproducing ArticleHero here would be exactly the duplication the iframe
+ * preview was built to remove — so it stays deliberately plain and is labelled
+ * as approximate wherever it is shown.
+ */
 export function ArticlePreview({
   blocks,
   title,
@@ -221,11 +306,11 @@ export function ArticlePreview({
   return (
     <div
       data-article-preview
-      className="rounded-lg bg-white p-6 sm:p-8 dark:bg-zinc-950"
+      className="rounded-lg bg-stone-50 p-6 sm:p-8 dark:bg-zinc-950"
     >
       <header className="mb-8 border-b border-zinc-950/10 pb-8 dark:border-white/10">
         {eyebrow && (
-          <p className="mb-2 font-mono text-xs tracking-wide text-accent uppercase">
+          <p className="mb-2 font-mono text-xs tracking-wide text-brand uppercase">
             {eyebrow}
           </p>
         )}
@@ -242,7 +327,7 @@ export function ArticlePreview({
       {blocks.length === 0 ? (
         <p className="text-sm text-zinc-400">正文为空。</p>
       ) : (
-        blocks.map((block, index) => <Block key={index} block={block} />)
+        <PreviewBody content={blocks} />
       )}
     </div>
   );

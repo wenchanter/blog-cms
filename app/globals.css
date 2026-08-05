@@ -89,6 +89,13 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
 
+  /*
+   * personal-website's accent, used only by the offline preview fallback so its
+   * markup can stay identical to the site's ArticleBody. Keep in step with
+   * `--color-brand` in that repo's globals.css.
+   */
+  --color-brand: #209e57;
+
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 

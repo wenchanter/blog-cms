@@ -159,7 +159,9 @@ personal-website 的 `content` 是**结构化块数组**（`ArticleBlock[]`）�
 | `lib/blocks.ts` | 块与行内富文本类型，与网站 `app/blog/types.ts` 保持一致 |
 | `lib/tiptap.ts` | doc → 块编译器 |
 | `app/admin/posts/post-editor.tsx` | 编辑器（schema 受约束） |
-| `app/admin/posts/article-preview.tsx` | 按网站文章样式渲染编译结果 |
+| `app/admin/posts/site-preview.tsx` | 实时预览（iframe 加载站点的 `/preview/`） |
+| `app/admin/posts/article-preview.tsx` | 离线降级渲染器，`ArticleBody.tsx` 的逐字节副本 |
+| `lib/preview-protocol.ts` | 预览的 postMessage 协议，与站点同名文件保持一致 |
 | `app/api/posts/route.ts` | 构建期数据源，Bearer token 鉴权 |
 | `app/api/upload/route.ts` · `app/assets/[...key]/route.ts` | 图片上传与公开读取（R2） |
 | `lib/markdown.ts` · `lib/blocks-to-doc.ts` | 仅供迁移使用，运行时不再调用 |
@@ -208,7 +210,32 @@ personal-website 的 `content` 是**结构化块数组**（`ArticleBlock[]`）�
 
 ### 预览
 
-正文区右上角「编辑 / 预览」。预览调用的是**与 API 完全相同的编译函数**，并按网站文章样式渲染。
+正文区右上角的「预览」打开全屏预览。它**不是 CMS 画的仿真页面，而是 personal-website 本身**——iframe 加载该站的 `/preview/`，编辑内容通过 `postMessage` 推进去，由站点用它真实的 `ArticleBody`、真实样式表、真实字体渲染。
+
+```
+CMS 编辑器                         personal-website /preview/
+┌────────────────────┐            ┌──────────────────────────┐
+│ compileDocJson()   │  render    │ ArticleHero              │
+│   → ArticleBlock[] │───────────►│ ArticleBody   ← 真实组件  │
+│                    │◄───────────│ ArticleAside             │
+│ <iframe>           │  ready     │ 真实 CSS / 字体 / 断点    │
+└────────────────────┘            └──────────────────────────┘
+```
+
+这样做的理由：CMS 里再维护一份渲染器，就一定会和站点漂移——之前加下划线、删除线、图片时就漏改过预览。**现在只有一个渲染器，漂移在结构上不可能发生。**
+
+iframe 固定为设备视口（桌面 1440 / 平板 834 / 手机 390）并缩放适配，而不是随内容拉高——只有真实视口才能让 `sm:`/`lg:` 断点、`100dvh`、固定页头和 sticky 目录表现得和读者看到的一致。
+
+安全：两侧各有一份 origin 白名单（CMS 的 `NEXT_PUBLIC_SITE_ORIGIN`，站点的 `NEXT_PUBLIC_CMS_ORIGIN`），不在名单里的消息一律丢弃；协议带版本号，任一侧部署过期就整体忽略而不是渲染出半截内容。`/preview/` 页面本身 `noindex, nofollow` 且不进 sitemap。
+
+**离线降级**：站点没启动或没配地址时，6 秒握手超时后退回 CMS 内置的近似预览，并明确标注「近似」。这份内置渲染器是 `ArticleBody.tsx` 的逐字节副本，由 `npm run test:parity` 强制保证——它拿站点生成的黄金文件比对 HTML，不一致就失败：
+
+```bash
+cd ../personal-website && npm run golden   # 由真实组件生成黄金文件
+cd ../blog-cms && npm run test:parity      # 断言内置副本与之逐字节相同
+```
+
+改了站点的 `ArticleBody.tsx` 之后重新执行这两步；测试失败时**应当把新标记拷贝过来，而不是反向重新生成黄金文件**。
 
 ### 从 Markdown 迁移
 
@@ -229,7 +256,16 @@ npx wrangler secret put CMS_API_TOKEN       # 生产
 echo 'CMS_API_TOKEN="..."' > .dev.vars      # 本地（已 gitignore）
 ```
 
-personal-website 侧设置 `CMS_API_URL` 与同一个 `CMS_API_TOKEN`，之后 `npm run build` 会自动同步并生成静态页。
+实时预览还需要两侧互指对方的 origin（见各自的 `.env.example`）：
+
+| 变量 | 位置 | 值 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SITE_ORIGIN` | blog-cms | personal-website 的地址，如 `http://localhost:3001` |
+| `NEXT_PUBLIC_CMS_ORIGIN` | personal-website | CMS 的地址，可逗号分隔多个 |
+
+两者都是 `NEXT_PUBLIC_`，**在构建期内联**，改完要重新构建。留空则预览自动降级为内置近似渲染。
+
+personal-website 侧另需设置 `CMS_API_URL` 与同一个 `CMS_API_TOKEN`，之后 `npm run build` 会自动同步并生成静态页。
 
 > `components/tiptap-*`、`hooks/`、`lib/tiptap-utils.ts` 是 `@tiptap/cli` 装进来的第三方源码，已在 eslint 中忽略。
 
@@ -268,6 +304,7 @@ npm run db:migrate:remote
 | `npm run user:create` | 创建/更新 CMS 登录账号 |
 | `npm run test:tiptap` | 运行 doc → 块编译器与 round-trip 测试 |
 | `npm run test:markdown` | 运行 Markdown 编译器测试（迁移用） |
+| `npm run test:parity` | 断言降级渲染器与站点 `ArticleBody` 逐字节一致 |
 | `npm run migrate:doc` | 把历史 Markdown 迁移为 doc |
 | `npm run db:migrate:local` | 应用本地 D1 迁移 |
 | `npm run db:migrate:remote` | 应用生产 D1 迁移 |

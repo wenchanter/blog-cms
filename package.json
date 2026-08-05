@@ -16,6 +16,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "test:markdown": "tsx scripts/test-markdown.mjs",
     "test:tiptap": "tsx scripts/test-tiptap.mjs",
+    "test:parity": "tsx scripts/test-renderer-parity.tsx",
     "migrate:doc": "tsx scripts/migrate-content-doc.mjs"
   },
   "dependencies": {

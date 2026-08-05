@@ -1,0 +1,182 @@
+[
+  {
+    "type": "lead",
+    "text": "The lead paragraph opens the article."
+  },
+  {
+    "type": "heading",
+    "id": "level-two",
+    "text": "A level two heading",
+    "level": 2
+  },
+  {
+    "type": "paragraph",
+    "text": "A plain paragraph carrying no marks at all."
+  },
+  {
+    "type": "paragraph",
+    "text": [
+      {
+        "type": "text",
+        "text": "Every mark: "
+      },
+      {
+        "type": "text",
+        "text": "strong",
+        "marks": [
+          "strong"
+        ]
+      },
+      {
+        "type": "text",
+        "text": ", "
+      },
+      {
+        "type": "text",
+        "text": "emphasis",
+        "marks": [
+          "em"
+        ]
+      },
+      {
+        "type": "text",
+        "text": ", "
+      },
+      {
+        "type": "text",
+        "text": "inline code",
+        "marks": [
+          "code"
+        ]
+      },
+      {
+        "type": "text",
+        "text": ", "
+      },
+      {
+        "type": "text",
+        "text": "underline",
+        "marks": [
+          "underline"
+        ]
+      },
+      {
+        "type": "text",
+        "text": ", "
+      },
+      {
+        "type": "text",
+        "text": "strikethrough",
+        "marks": [
+          "strike"
+        ]
+      },
+      {
+        "type": "text",
+        "text": ", and "
+      },
+      {
+        "type": "text",
+        "text": "a bold external link",
+        "marks": [
+          "strong"
+        ],
+        "href": "https://example.com/"
+      },
+      {
+        "type": "text",
+        "text": " next to "
+      },
+      {
+        "type": "text",
+        "text": "an internal one",
+        "href": "/blog/"
+      },
+      {
+        "type": "text",
+        "text": "."
+      }
+    ]
+  },
+  {
+    "type": "heading",
+    "id": "level-three",
+    "text": [
+      {
+        "type": "text",
+        "text": "A level three heading with "
+      },
+      {
+        "type": "text",
+        "text": "code",
+        "marks": [
+          "code"
+        ]
+      }
+    ],
+    "level": 3
+  },
+  {
+    "type": "list",
+    "items": [
+      "A plain bullet.",
+      [
+        {
+          "type": "text",
+          "text": "A bullet with "
+        },
+        {
+          "type": "text",
+          "text": "emphasis",
+          "marks": [
+            "em"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    ]
+  },
+  {
+    "type": "list",
+    "ordered": true,
+    "items": [
+      "First numbered step.",
+      "Second numbered step."
+    ]
+  },
+  {
+    "type": "quote",
+    "text": "A pull quote without attribution.",
+    "cite": "Someone Quotable"
+  },
+  {
+    "type": "quote",
+    "text": "A pull quote with no cite line."
+  },
+  {
+    "type": "code",
+    "language": "typescript",
+    "code": "const greeting = \"hello <world> & 'friends'\";\nconsole.log(greeting);"
+  },
+  {
+    "type": "image",
+    "src": "https://cms.example.com/assets/posts/fixture-1600x900.webp",
+    "alt": "An image whose alt text doubles as the caption",
+    "width": 1600,
+    "height": 900
+  },
+  {
+    "type": "image",
+    "src": "https://cms.example.com/assets/posts/fixture-800x600.webp",
+    "alt": "",
+    "width": 800,
+    "height": 600
+  },
+  {
+    "type": "paragraph",
+    "text": "Trailing text so the last block is never an edge case."
+  }
+]

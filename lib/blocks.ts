@@ -48,6 +48,25 @@ export type ArticleBlock =
       height?: number;
     };
 
+/**
+ * Rewrites `/assets/...` image sources onto an absolute origin.
+ *
+ * Images are stored relative because the CMS serves them itself, but neither
+ * consumer of a block list runs on the CMS origin: the static site is a
+ * different domain, and the live preview is an iframe served by that site. Both
+ * would 404 on a relative path.
+ */
+export function absolutizeBlocks(
+  blocks: readonly ArticleBlock[],
+  origin: string,
+): ArticleBlock[] {
+  return blocks.map((block) =>
+    block.type === "image" && block.src.startsWith("/")
+      ? { ...block, src: `${origin}${block.src}` }
+      : block,
+  );
+}
+
 /** Flattens rich text back to a plain string (search, reading time, excerpts). */
 export function richTextToPlain(value: RichText): string {
   if (typeof value === "string") return value;

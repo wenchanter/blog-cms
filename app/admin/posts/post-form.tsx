@@ -15,8 +15,8 @@ import {
 import type { CategoryWithCount } from "@/lib/categories";
 import type { Post } from "@/lib/posts";
 import { compileDocJson, EMPTY_DOC } from "@/lib/tiptap";
-import { ArticlePreview, DiagnosticsList } from "./article-preview";
 import { PostEditor } from "./post-editor";
+import { SitePreview } from "./site-preview";
 
 /** Mirrors `slugify` in lib/validation.ts for the live preview only; the server re-derives it. */
 function slugifyPreview(value: string): string {
@@ -112,7 +112,7 @@ export function PostForm({
   const set = <K extends keyof FormValues>(key: K, value: FormValues[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
 
-  const [tab, setTab] = useState<"write" | "preview">("write");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Compiled with the very same function `/api/posts` uses, so what is shown
   // here is exactly what the static site will render.
@@ -237,23 +237,13 @@ export function PostForm({
                     {compiled.diagnostics.length} 处提示
                   </span>
                 )}
-                <div className="flex rounded-lg border border-line p-0.5">
-                  {(["write", "preview"] as const).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setTab(value)}
-                      aria-pressed={tab === value}
-                      className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-                        tab === value
-                          ? "bg-accent-soft font-medium text-accent-text"
-                          : "text-muted hover:text-ink"
-                      }`}
-                    >
-                      {value === "write" ? "编辑" : "预览"}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(true)}
+                  className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:bg-panel-muted hover:text-ink"
+                >
+                  预览
+                </button>
               </div>
             </div>
 
@@ -261,26 +251,32 @@ export function PostForm({
                 receives it verbatim — the editor never round-trips it. */}
             <input type="hidden" name="contentDoc" value={values.contentDoc} />
 
-            {/* The editor stays mounted while previewing: unmounting it would
-                throw away undo history and the caret. */}
-            <div className={tab === "write" ? undefined : "hidden"}>
-              <PostEditor
-                value={values.contentDoc}
-                onChange={(json) => set("contentDoc", json)}
-                onUploadError={setUploadError}
-              />
-            </div>
+            <PostEditor
+              value={values.contentDoc}
+              onChange={(json) => set("contentDoc", json)}
+              onUploadError={setUploadError}
+            />
 
-            {tab === "preview" && (
-              <div className="rounded-lg border border-line bg-panel-muted p-2">
-                <DiagnosticsList diagnostics={compiled.diagnostics} />
-                <ArticlePreview
-                  blocks={compiled.blocks}
-                  title={values.title}
-                  eyebrow={values.eyebrow}
-                  description={values.description}
-                />
-              </div>
+            {/* Rendered only while open: the frame connects on mount, and
+                keeping it alive would hold an idle connection to the site. */}
+            {previewOpen && (
+              <SitePreview
+                input={{
+                  title: values.title,
+                  eyebrow: values.eyebrow,
+                  description: values.description,
+                  category: values.category,
+                  tags: values.tags
+                    .split(",")
+                    .map((tag) => tag.trim())
+                    .filter(Boolean),
+                  featured: values.featured,
+                  publishedAt: post?.publishedAt ?? "",
+                  blocks: compiled.blocks,
+                }}
+                diagnostics={compiled.diagnostics}
+                onClose={() => setPreviewOpen(false)}
+              />
             )}
 
             {uploadError && (
