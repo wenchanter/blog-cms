@@ -3,6 +3,7 @@ import { logout } from "@/app/actions/auth";
 import { Button, IconPlus, LinkButton } from "@/app/components/ui";
 import { requireUser } from "@/lib/dal";
 import { AdminNav } from "./nav";
+import { DeployButton } from "./deploy-button";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             新建文章
           </LinkButton>
 
-          <div className="mt-auto border-t border-line pt-4">
+          <div className="mt-auto">
+            <DeployButton />
+          </div>
+
+          <div className="border-t border-line pt-4">
             <div className="mb-3 flex items-center gap-2.5 px-1">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-text">
                 {initial(label)}

@@ -1,6 +1,5 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { absolutizeBlocks, blocksToPlainText } from "@/lib/blocks";
-import { getDatabase } from "@/lib/cloudflare";
+import { getDatabase, readEnv } from "@/lib/cloudflare";
 import { compileDocJson } from "@/lib/tiptap";
 import { listPosts } from "@/lib/posts";
 
@@ -25,16 +24,6 @@ function timingSafeEqual(a: string, b: string): boolean {
   let diff = 0;
   for (let i = 0; i < left.length; i++) diff |= left[i] ^ right[i];
   return diff === 0;
-}
-
-async function readEnv(name: string): Promise<string | undefined> {
-  try {
-    const { env } = await getCloudflareContext({ async: true });
-    const value = (env as unknown as Record<string, unknown>)[name];
-    return (typeof value === "string" ? value : undefined) ?? process.env[name];
-  } catch {
-    return process.env[name];
-  }
 }
 
 async function readToken(): Promise<string | undefined> {
