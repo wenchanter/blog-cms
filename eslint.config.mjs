@@ -9,9 +9,18 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".open-next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "cloudflare-env.d.ts",
+    // Vendored Tiptap UI components, installed by `@tiptap/cli`. Third-party
+    // source we do not maintain — linting it only produces noise that cannot
+    // be fixed without diverging from upstream.
+    "components/tiptap-**",
+    "hooks/**",
+    "lib/tiptap-utils.ts",
+    "scss.d.ts",
   ]),
 ]);
 

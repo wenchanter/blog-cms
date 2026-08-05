@@ -1,26 +1,187 @@
+@import '../styles/_variables.scss';
+@import '../styles/_keyframe-animations.scss';
+
 @import "tailwindcss";
 
+/*
+ * Design tokens. Every colour in the UI comes from here, so light and dark
+ * stay in step and no component hand-rolls a `black/15`-style value.
+ * The palette is a cool neutral ramp plus one indigo accent; status colours
+ * are reserved for meaning (published / draft / destructive).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --surface: hsl(220 20% 97%);
+  --panel: hsl(0 0% 100%);
+  --panel-muted: hsl(220 20% 98.5%);
+  --border: hsl(220 13% 90%);
+  --border-strong: hsl(220 13% 82%);
+  --text: hsl(222 30% 12%);
+  --text-muted: hsl(220 9% 46%);
+  --text-subtle: hsl(220 9% 58%);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --accent: hsl(243 70% 56%);
+  --accent-hover: hsl(243 70% 50%);
+  --accent-soft: hsl(243 90% 96%);
+  --accent-text: hsl(243 60% 44%);
+
+  --success: hsl(152 55% 34%);
+  --success-soft: hsl(150 60% 95%);
+  --warning: hsl(32 75% 40%);
+  --warning-soft: hsl(40 90% 94%);
+  --danger: hsl(0 65% 48%);
+  --danger-soft: hsl(0 85% 97%);
+
+  --ring: hsl(243 70% 56% / 0.35);
+  --shadow-panel: 0 1px 2px hsl(220 20% 20% / 0.04),
+    0 1px 3px hsl(220 20% 20% / 0.06);
+  --shadow-raised: 0 4px 12px hsl(220 20% 20% / 0.07),
+    0 1px 3px hsl(220 20% 20% / 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --surface: hsl(224 24% 7%);
+    --panel: hsl(224 20% 10.5%);
+    --panel-muted: hsl(224 20% 13%);
+    --border: hsl(220 14% 19%);
+    --border-strong: hsl(220 14% 27%);
+    --text: hsl(210 25% 96%);
+    --text-muted: hsl(218 12% 62%);
+    --text-subtle: hsl(218 12% 50%);
+
+    --accent: hsl(243 80% 68%);
+    --accent-hover: hsl(243 80% 74%);
+    --accent-soft: hsl(243 45% 20%);
+    --accent-text: hsl(243 85% 80%);
+
+    --success: hsl(152 50% 62%);
+    --success-soft: hsl(152 35% 16%);
+    --warning: hsl(38 85% 68%);
+    --warning-soft: hsl(35 40% 17%);
+    --danger: hsl(0 75% 70%);
+    --danger-soft: hsl(0 40% 18%);
+
+    --ring: hsl(243 80% 68% / 0.4);
+    --shadow-panel: 0 1px 2px hsl(0 0% 0% / 0.3), 0 1px 3px hsl(0 0% 0% / 0.25);
+    --shadow-raised: 0 4px 14px hsl(0 0% 0% / 0.4), 0 1px 3px hsl(0 0% 0% / 0.3);
   }
 }
 
+@theme inline {
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-panel-muted: var(--panel-muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --shadow-panel: var(--shadow-panel);
+  --shadow-raised: var(--shadow-raised);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  /* The starter set Arial here, which overrode the Geist font being loaded. */
+  font-family: var(--font-sans);
+}
+
+/* One focus treatment for every interactive element. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* Inputs inherit the page font rather than the UA default. */
+:where(input, select, textarea, button) {
+  font: inherit;
+}
+
+/*
+ * The article editor. The Tiptap template ships styles for a full-page editor;
+ * these size it as a form field instead — a writing surface tall enough to work
+ * in, that grows with the document rather than scrolling inside a small box.
+ */
+.post-editor-content .tiptap.ProseMirror {
+  min-height: 28rem;
+  padding: 1.25rem 1.5rem 2rem;
+  outline: none;
+}
+
+.post-editor-content .tiptap.ProseMirror > * {
+  max-width: 100%;
+}
+
+/* Placeholder text for an empty document. */
+.post-editor-content .tiptap.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-subtle);
+}
+
+/* Image node with its editable caption. */
+.post-editor-content .tiptap-image-figure {
+  margin: 1.5rem 0;
+}
+
+.post-editor-content .tiptap-image-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+.post-editor-content .tiptap-image-figure.is-selected img {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.post-editor-content .tiptap-image-figure figcaption {
+  margin-top: 0.5rem;
+}
+
+.post-editor-content .tiptap-image-figure figcaption input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px dashed var(--border-strong);
+  background: transparent;
+  padding: 0.25rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.post-editor-content .tiptap-image-figure figcaption input::placeholder {
+  color: var(--text-subtle);
+}
+
+.post-editor-content .tiptap-image-figure figcaption input:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+  color: var(--text);
 }
