@@ -97,7 +97,7 @@ function Block({ block }: { block: ArticleBlock }) {
   switch (block.type) {
     case "lead":
       return (
-        <p className="text-lg leading-9 text-pretty text-zinc-700 sm:text-xl sm:leading-10 dark:text-zinc-300">
+        <p className="text-[1.25rem] leading-[1.55] text-pretty text-zinc-800 sm:text-[1.375rem] dark:text-zinc-200">
           <Inline value={block.text} />
         </p>
       );
@@ -106,7 +106,7 @@ function Block({ block }: { block: ArticleBlock }) {
       if (block.level === 3) {
         return (
           <h3
-            className="mt-12 scroll-mt-28 text-xl leading-tight font-bold tracking-[-0.03em] text-zinc-950 sm:text-2xl dark:text-zinc-50"
+            className="mt-12 scroll-mt-28 text-[1.25rem] leading-[1.3] font-semibold tracking-[-0.015em] text-zinc-950 sm:text-[1.5rem] dark:text-zinc-50"
             id={block.id}
           >
             <Inline value={block.text} />
@@ -116,7 +116,7 @@ function Block({ block }: { block: ArticleBlock }) {
 
       return (
         <h2
-          className="mt-16 scroll-mt-28 text-2xl leading-tight font-extrabold tracking-[-0.04em] text-zinc-950 first:mt-0 sm:text-3xl dark:text-zinc-50"
+          className="mt-16 scroll-mt-28 text-[1.5rem] leading-[1.2] font-semibold tracking-[-0.015em] text-zinc-950 first:mt-0 sm:text-[1.875rem] dark:text-zinc-50"
           id={block.id}
         >
           <Inline value={block.text} />
@@ -126,7 +126,7 @@ function Block({ block }: { block: ArticleBlock }) {
 
     case "paragraph":
       return (
-        <p className="mt-6 text-base leading-9 text-pretty text-zinc-600 sm:text-[1.0625rem] sm:leading-9 dark:text-zinc-400">
+        <p className="mt-7 text-[1.125rem] leading-[1.6] text-pretty text-zinc-800 sm:text-[1.25rem] dark:text-zinc-200">
           <Inline value={block.text} />
         </p>
       );
@@ -140,7 +140,7 @@ function Block({ block }: { block: ArticleBlock }) {
             </span>
           ) : (
             <span
-              className="mt-3 size-1.5 shrink-0 rounded-full bg-brand"
+              className="mt-3.5 size-1.5 shrink-0 rounded-full bg-brand"
               aria-hidden="true"
             />
           )}
@@ -151,11 +151,11 @@ function Block({ block }: { block: ArticleBlock }) {
       ));
 
       return block.ordered ? (
-        <ol className="mt-6 space-y-4 text-base leading-8 text-zinc-600 sm:text-[1.0625rem] dark:text-zinc-400">
+        <ol className="mt-7 space-y-4 text-[1.125rem] leading-[1.7] text-zinc-800 sm:text-[1.25rem] dark:text-zinc-200">
           {items}
         </ol>
       ) : (
-        <ul className="mt-6 space-y-4 text-base leading-8 text-zinc-600 sm:text-[1.0625rem] dark:text-zinc-400">
+        <ul className="mt-7 space-y-4 text-[1.125rem] leading-[1.7] text-zinc-800 sm:text-[1.25rem] dark:text-zinc-200">
           {items}
         </ul>
       );
@@ -164,7 +164,7 @@ function Block({ block }: { block: ArticleBlock }) {
     case "quote":
       return (
         <figure className="mt-10 border-l-[3px] border-brand py-1 pl-6">
-          <blockquote className="text-lg leading-9 text-pretty text-zinc-600 italic sm:text-xl sm:leading-10 dark:text-zinc-300">
+          <blockquote className="text-[1.125rem] leading-[1.7] text-pretty text-zinc-800 italic sm:text-[1.25rem] dark:text-zinc-200">
             <Inline value={block.text} />
           </blockquote>
           {block.cite ? (
@@ -194,7 +194,7 @@ function Block({ block }: { block: ArticleBlock }) {
               <CodeGlyph />
             </span>
           </div>
-          <pre className="overflow-x-auto px-5 py-5 text-[0.8125rem] leading-7 text-zinc-700 dark:text-zinc-300">
+          <pre className="overflow-x-auto px-5 py-5 text-[0.9375rem] leading-7 text-zinc-700 dark:text-zinc-300">
             <code className="font-mono">{block.code}</code>
           </pre>
         </div>
